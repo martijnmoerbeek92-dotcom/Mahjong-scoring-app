@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Mahjong Scorekeeper</title>
+<title>Spreadsheet: The App — Mahjong</title>
 
 <!-- PWA / Native App Meta Tags -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,6 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Mahjong">
 <meta name="theme-color" content="#0d3b2e">
+<link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%20%22Mahjong%20Scorekeeper%22%2C%20%22short_name%22%3A%20%22Mahjong%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%230d3b2e%22%2C%20%22theme_color%22%3A%20%22%23c79a2e%22%7D">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -37,64 +38,1462 @@
   body{
     margin:0;
     font-family:var(--font-body);
-    background: radial-gradient(circle at 50% 0%, var(--jade-light) 0%, var(--jade) 45%, var(--jade-deep) 100%);
+    background:
+      radial-gradient(circle at 50% 0%, var(--jade-light) 0%, var(--jade) 45%, var(--jade-deep) 100%);
     color:var(--ivory);
     min-height:100vh;
     padding:32px 16px 64px;
-    overscroll-behavior-y: none;
+    overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
   }
   .wrap{max-width:920px;margin:0 auto;}
-  h1{font-family:var(--font-display); font-weight:700; font-size:clamp(28px,5vw,42px); text-align:center; letter-spacing:0.5px; margin:0 0 4px; color:var(--ivory);}
-  .subtitle{text-align:center; color:var(--ivory-dim); font-size:14px; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:36px;}
-  
+  h1{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:clamp(28px,5vw,42px);
+    text-align:center;
+    letter-spacing:0.5px;
+    margin:0 0 4px;
+    color:var(--ivory);
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--ivory-dim);
+    font-size:14px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  .build-tag{
+    text-align:center;
+    color:var(--gold-bright);
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.5px;
+    text-transform:none;
+    margin-bottom:30px;
+    opacity:0.75;
+  }
   .card{
     background:linear-gradient(180deg, rgba(242,234,215,0.06), rgba(242,234,215,0.02));
     border:1px solid rgba(242,234,215,0.14);
     border-radius:14px;
     padding:24px;
     backdrop-filter:blur(2px);
-    margin-bottom: 20px;
   }
-
-  /* Setup */
+  /* ---------- Setup & Menu ---------- */
   #setup .field{margin-bottom:16px;}
-  #setup label{display:block; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); margin-bottom:6px; font-weight:600;}
+  #setup label{
+    display:block;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--gold-bright);
+    margin-bottom:6px;
+    font-weight:600;
+  }
   input[type=text], input[type=number]{
-    width:100%; padding:12px; border-radius:8px; border:1px solid rgba(242,234,215,0.25);
-    background:rgba(0,0,0,0.18); color:var(--ivory); font-family:var(--font-body); font-size:16px;
+    width:100%;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid rgba(242,234,215,0.25);
+    background:rgba(0,0,0,0.18);
+    color:var(--ivory);
+    font-family:var(--font-body);
+    font-size:16px; /* 16px prevents auto-zoom on iOS */
+  }
+  input::placeholder{color:rgba(242,234,215,0.35);}
+  input:focus{outline:2px solid var(--gold-bright);outline-offset:1px;}
+  
+  .saved-game-card{
+    background:rgba(0,0,0,0.15);
+    border:1px solid rgba(242,234,215,0.15);
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:12px;
   }
 
   .btn{
-    appearance:none; border:none; cursor:pointer; font-family:var(--font-body); font-weight:600; font-size:14px;
-    padding:11px 20px; border-radius:8px; background:var(--gold); color:var(--ink); transition:all .12s ease;
+    appearance:none;
+    border:none;
+    cursor:pointer;
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:14px;
+    padding:11px 20px;
+    border-radius:8px;
+    background:var(--gold);
+    color:var(--ink);
+    transition:transform .12s ease, background .12s ease;
   }
   .btn:hover{background:var(--gold-bright); transform:translateY(-1px);}
-  .btn.secondary{background:transparent; color:var(--ivory); border:1px solid rgba(242,234,215,0.35);}
-  .btn:disabled{opacity:0.3; cursor:not-allowed;}
-
-  /* Compass */
-  .compass{
-    display:grid; grid-template-columns:1fr 1fr 1fr; grid-template-rows:auto auto auto;
-    gap:14px; align-items:center; justify-items:center; margin-bottom:28px;
+  .btn:active{transform:translateY(0);}
+  .btn.secondary{
+    background:transparent;
+    color:var(--ivory);
+    border:1px solid rgba(242,234,215,0.35);
   }
-  .seat-slot.north{grid-column:2; grid-row:1;}
-  .seat-slot.west{grid-column:1; grid-row:2;}
-  .seat-slot.center{grid-column:2; grid-row:2;}
-  .seat-slot.east{grid-column:3; grid-row:2;}
-  .seat-slot.south{grid-column:2; grid-row:3;}
+  .btn.secondary:hover{background:rgba(242,234,215,0.08);}
+  .btn.danger{background:var(--red);color:var(--ivory);}
+  .btn.danger:hover{background:var(--red-bright);}
+  .btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;}
+
+  /* ---------- Compass ---------- */
+  #game{display:none;}
+  .compass{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    grid-template-rows:auto auto auto;
+    gap:14px;
+    align-items:center;
+    justify-items:center;
+    margin-bottom:28px;
+  }
+  .seat-slot{width:100%;}
+  .seat-slot.north{grid-column:2;grid-row:1;}
+  .seat-slot.west{grid-column:1;grid-row:2;}
+  .seat-slot.center{grid-column:2;grid-row:2;}
+  .seat-slot.east{grid-column:3;grid-row:2;}
+  .seat-slot.south{grid-column:2;grid-row:3;}
 
   .seat-card{
-    background:var(--ivory); color:var(--ink); border-radius:10px; padding:12px;
-    text-align:center; box-shadow:0 4px 10px rgba(0,0,0,0.2); position:relative; width: 100%;
+    background:var(--ivory);
+    color:var(--ink);
+    border-radius:10px;
+    padding:14px 10px;
+    text-align:center;
+    box-shadow:0 4px 10px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(0,0,0,0.06);
+    position:relative;
+    transition:box-shadow .2s ease;
   }
-  .seat-card.is-dealer{ border: 3px solid var(--red); }
+  .seat-card.prevailing{
+    box-shadow:0 0 0 2px var(--gold-bright), 0 6px 16px rgba(199,154,46,0.45);
+  }
   .seat-wind-tag{
-    font-family:var(--font-display); font-size:20px; font-weight:700;
-    display:inline-block; width:28px; height:28px; line-height:28px;
-    border-radius:50%; background:var(--jade-deep); color:var(--ivory); margin-bottom:4px;
+    font-family:var(--font-display);
+    font-size:22px;
+    font-weight:700;
+    display:inline-block;
+    width:32px;height:32px;line-height:32px;
+    border-radius:50%;
+    background:var(--jade-deep);
+    color:var(--ivory);
+    margin-bottom:6px;
   }
-  .seat-name{font-weight:700; font-size:14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
-  .seat-total{font-family:var(--font-mono); font-size:16px; font-weight:700;}
+  .seat-card.prevailing .seat-wind-tag{background:var(--gold); color:var(--ink);}
+  .seat-wind-word{
+    display:block;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    font-weight:700;
+    color:#6b6252;
+    margin-bottom:4px;
+  }
+  .seat-name{font-weight:700;font-size:15px;margin-bottom:2px;}
+  .seat-total{
+    font-family:var(--font-mono);
+    font-size:18px;
+    font-weight:600;
+  }
+  .seat-total.pos{color:#1c6b3f;}
+  .seat-total.neg{color:var(--red);}
+  .seat-total.zero{color:#6b6252;}
+  .seat-east-badge{
+    position:absolute;
+    top:-8px;right:-8px;
+    background:var(--red);
+    color:var(--ivory);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.5px;
+    padding:3px 6px;
+    border-radius:6px;
+    text-transform:uppercase;
+  }
+  .prevailing-badge{
+    position:absolute;
+    top:-8px;left:-8px;
+    background:var(--gold);
+    color:var(--ink);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.5px;
+    padding:3px 6px;
+    border-radius:6px;
+    text-transform:uppercase;
+  }
 
-  /* Recording */
-  .choice-group
+  .hand-counter{
+    text-align:center;
+    font-size:14px;
+    font-weight:600;
+    color:var(--gold-bright);
+    letter-spacing:0.5px;
+    margin-bottom:24px;
+  }
+
+  /* ---------- Hand entry ---------- */
+  .section-title{
+    font-family:var(--font-display);
+    font-size:20px;
+    font-weight:600;
+    margin:0 0 16px;
+    color:var(--gold-bright);
+  }
+  .choice-group{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+  .choice-btn{
+    padding:9px 16px;
+    border-radius:20px;
+    border:1px solid rgba(242,234,215,0.3);
+    background:transparent;
+    color:var(--ivory);
+    font-family:var(--font-body);
+    font-size:14px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .choice-btn:hover{background:rgba(242,234,215,0.1);}
+  .choice-btn.selected{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:var(--ink);
+    font-weight:600;
+  }
+  .choice-btn:disabled{opacity:0.3;cursor:not-allowed;}
+  .score-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:14px;
+    margin-bottom:20px;
+  }
+  .score-field label{
+    display:block;font-size:12px;color:var(--ivory-dim);margin-bottom:5px;
+    text-transform:uppercase;letter-spacing:0.5px;
+  }
+  .hint{font-size:12px;color:var(--ivory-dim);margin:-8px 0 16px;line-height:1.5;}
+  .divider{height:1px;background:rgba(242,234,215,0.15);margin:28px 0;}
+
+  /* ---------- History ---------- */
+  .hand-log{max-height:360px;overflow-y:auto;padding-right:4px;}
+  .hand-entry{
+    background:rgba(0,0,0,0.15);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:10px;
+    font-size:13px;
+  }
+  .hand-entry .head{
+    display:flex;justify-content:space-between;align-items:baseline;
+    margin-bottom:8px;
+    font-weight:600;
+  }
+  .hand-entry .head .num{color:var(--gold-bright);font-family:var(--font-mono);}
+  .hand-entry .deltas{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--font-mono);}
+  .hand-entry .deltas span.pos{color:#7fdba0;}
+  .hand-entry .deltas span.neg{color:#e08a80;}
+  .hand-entry .meta{color:var(--ivory-dim);font-size:12px;margin-top:6px;}
+  .entry-actions{display:flex;gap:8px;margin-top:10px;}
+  .btn.small{padding:5px 12px;font-size:12px;}
+  .empty-log{color:var(--ivory-dim);font-size:13px;text-align:center;padding:20px 0;}
+
+  .top-actions{display:flex;justify-content:flex-end;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .form-error{
+    background:rgba(163,59,50,0.25);
+    border:1px solid rgba(163,59,50,0.5);
+    color:var(--ivory);
+    font-size:13px;
+    padding:10px 14px;
+    border-radius:8px;
+    margin-bottom:16px;
+  }
+
+  /* ---------- Score calculator ---------- */
+  select{
+    padding:8px 10px;
+    border-radius:8px;
+    border:1px solid rgba(242,234,215,0.25);
+    background:rgba(0,0,0,0.18);
+    color:var(--ivory);
+    font-family:var(--font-body);
+    font-size:16px; 
+  }
+  select:focus{outline:2px solid var(--gold-bright);outline-offset:1px;}
+  .calc-panel{
+    margin-top:14px;
+    padding:16px;
+    border-radius:10px;
+    background:rgba(0,0,0,0.2);
+    border:1px solid rgba(242,234,215,0.15);
+  }
+  .calc-panel h4{
+    font-family:var(--font-display);
+    font-size:15px;
+    margin:0 0 10px;
+    color:var(--gold-bright);
+  }
+  .calc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;}
+  .calc-row .calc-label{
+    font-size:12px;color:var(--ivory-dim);min-width:64px;
+  }
+  .calc-set-block{
+    padding:10px;border-radius:8px;background:rgba(242,234,215,0.05);margin-bottom:10px;
+  }
+  .calc-check-row{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px;}
+  .calc-check-row label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ivory-dim);cursor:pointer;}
+  .calc-breakdown{
+    margin-top:12px;padding:12px;border-radius:8px;
+    background:rgba(199,154,46,0.1);border:1px solid rgba(199,154,46,0.3);
+    font-size:13px;
+  }
+  .calc-breakdown ul{margin:6px 0;padding-left:20px;}
+  .calc-breakdown .final{
+    font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--gold-bright);margin-top:8px;
+  }
+  .calc-warning{color:#e08a80;font-size:12px;margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Spreadsheet: The App</h1>
+  <div class="subtitle">Mahjong scorekeeper</div>
+  <div class="build-tag" id="buildTag"></div>
+
+  <!-- MENU / SETUP -->
+  <div id="setup" class="card">
+    <div class="section-title">Start a new game</div>
+    <div class="hint">Enter names in seating order. Seat 1 deals first (East); seats rotate counter-clockwise from there.</div>
+    <div class="field"><label>Seat 1 — starts East</label><input type="text" id="name0" placeholder="Player name"></div>
+    <div class="field"><label>Seat 2 — starts South</label><input type="text" id="name1" placeholder="Player name"></div>
+    <div class="field"><label>Seat 3 — starts West</label><input type="text" id="name2" placeholder="Player name"></div>
+    <div class="field"><label>Seat 4 — starts North</label><input type="text" id="name3" placeholder="Player name"></div>
+    <button class="btn" onclick="startNewGame()">Start new game</button>
+
+    <div id="savedGamesSection" style="display:none; margin-top:36px;">
+      <div class="divider" style="margin:20px 0;"></div>
+      <div class="section-title">Resume saved game</div>
+      <div id="savedGamesList"></div>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="game">
+    <div class="top-actions">
+      <button class="btn secondary" onclick="shareScores()">📤 Share scores</button>
+      <button class="btn secondary" id="undoBtn" onclick="undoLast()" disabled>Undo last hand</button>
+      <button class="btn secondary" onclick="exitToMenu()">Main Menu</button>
+    </div>
+
+    <div class="compass" id="compass"></div>
+    <div class="hand-counter" id="handCounter"></div>
+
+    <div class="card">
+      <div class="section-title">Record a hand</div>
+
+      <label style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--gold-bright);margin-bottom:8px;font-weight:600;">Outcome</label>
+      <div class="choice-group" id="outcomeChoices"></div>
+
+      <div id="winDetails">
+        <label style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--gold-bright);margin-bottom:8px;font-weight:600;">Winner</label>
+        <div class="choice-group" id="winnerChoices"></div>
+
+        <label style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--gold-bright);margin-bottom:8px;font-weight:600;">Who discarded the winning tile?</label>
+        <div class="choice-group" id="discarderChoices"></div>
+        <div class="hint">Pick "Self-draw" if the winner drew the winning tile themselves — no one pays a discard penalty.</div>
+
+        <label style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--gold-bright);margin-bottom:8px;font-weight:600;">Each player's hand score</label>
+        <div class="score-grid" id="scoreInputs"></div>
+        <div class="hint">Enter every player's own hand value for this round — the winner's determines what losers pay them; the others determine what losers settle between themselves.</div>
+
+        <button class="btn secondary small" id="calcToggleBtn" type="button" onclick="toggleCalc()">🧮 Score calculator (optional)</button>
+        <div id="calcPanel" class="calc-panel" style="display:none;"></div>
+      </div>
+      <div class="hint" id="drawHint" style="display:none;">No money changes hands on a draw. The dealer stays on and the hand is logged as a draw round.</div>
+      <div class="hint" id="editBanner" style="display:none;color:var(--gold-bright);"></div>
+      <div class="form-error" id="formError" style="display:none;"></div>
+
+      <div class="row">
+        <button class="btn" id="recordBtn" onclick="recordHand()">Record hand</button>
+        <button class="btn secondary" id="cancelEditBtn" style="display:none;" onclick="cancelEdit()">Cancel edit</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card">
+      <div class="section-title">Hand history</div>
+      <div class="hand-log" id="handLog"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Bump this on every change you make so you can visually confirm
+// (in the small gold text under the title) which build is actually loaded.
+const APP_VERSION = '2026-07-07.1';
+
+const WIND_GLYPH = {East:'東', South:'南', West:'西', North:'北'};
+const PREVAILING_SEQUENCE = ['East','North','West','South'];
+const INITIAL_SEATS = ['East','South','West','North'];
+const SUITS = ['Dots','Bamboo','Characters'];
+const WINDS = ['East','South','West','North'];
+const DRAGONS = ['Red','Green','White'];
+const STARTING_SCORE = 10000;
+
+// Core data structure
+let appData = { activeGameId: null, games: {} };
+let appState = null; 
+
+// Run when the script loads
+function initApp() {
+  const tag = document.getElementById('buildTag');
+  if (tag) tag.textContent = 'build ' + APP_VERSION;
+  console.log('Mahjong Scorekeeper build', APP_VERSION);
+
+  try {
+    const savedData = localStorage.getItem('mahjongAppData');
+    if (savedData) {
+      const parsed = JSON.parse(savedData);
+      if (parsed && typeof parsed === 'object' && parsed.games) {
+        appData = parsed;
+      }
+    }
+  } catch(e) {
+    console.error("Failed to parse local storage, resetting data.", e);
+  }
+
+  if (appData.activeGameId && appData.games[appData.activeGameId]) {
+    appState = appData.games[appData.activeGameId];
+    replay();
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('game').style.display = 'block';
+    render();
+  } else {
+    showMenu();
+  }
+}
+
+function saveState() {
+  if (appState && appData.activeGameId) {
+    appState.lastPlayed = Date.now();
+    appData.games[appData.activeGameId] = appState;
+  }
+  localStorage.setItem('mahjongAppData', JSON.stringify(appData));
+}
+
+function defaultCalcState(){
+  return {
+    open: false,
+    mode: 'regular',
+    forPlayer: 0,
+    comps: [
+      {type:'chow', kind:'Dots', rank:1, wind:'East', dragon:'Red', open:true},
+      {type:'chow', kind:'Dots', rank:1, wind:'East', dragon:'Red', open:true},
+      {type:'chow', kind:'Dots', rank:1, wind:'East', dragon:'Red', open:true},
+      {type:'chow', kind:'Dots', rank:1, wind:'East', dragon:'Red', open:true},
+      {type:'pair', kind:'Dots', rank:1, wind:'East', dragon:'Red', open:true}
+    ],
+    closed: false, 
+    lastTile: false, 
+    singleWait: false,
+    isWinner: true,
+    limitTier: 'full',
+    result: null
+  };
+}
+
+function showMenu() {
+  appData.activeGameId = null;
+  appState = null;
+  saveState();
+  
+  document.getElementById('game').style.display = 'none';
+  document.getElementById('setup').style.display = 'block';
+
+  const savedList = document.getElementById('savedGamesList');
+  savedList.innerHTML = '';
+  const gameIds = Object.keys(appData.games).sort((a,b) => appData.games[b].lastPlayed - appData.games[a].lastPlayed);
+
+  if(gameIds.length > 0) {
+    document.getElementById('savedGamesSection').style.display = 'block';
+    gameIds.forEach(id => {
+       const g = appData.games[id];
+       const dateStr = new Date(g.lastPlayed || parseInt(id)).toLocaleString();
+       
+       const div = document.createElement('div');
+       div.className = 'saved-game-card';
+       div.innerHTML = `
+         <div style="font-size:16px; font-weight:600; color:var(--gold-bright); margin-bottom:4px;">${g.initialNames.join(', ')}</div>
+         <div style="font-size:13px; color:var(--ivory-dim);">Hands played: ${g.records ? g.records.length : 0} &nbsp;·&nbsp; Last played: ${dateStr}</div>
+         <div style="margin-top:14px; display:flex; gap:8px;">
+            <button class="btn small" onclick="resumeGame('${id}')">Resume Game</button>
+            <button class="btn danger small secondary" onclick="deleteGame('${id}')">Delete</button>
+         </div>
+       `;
+       savedList.appendChild(div);
+    });
+  } else {
+    document.getElementById('savedGamesSection').style.display = 'none';
+  }
+}
+
+function startNewGame(){
+  const names = [0,1,2,3].map(i => document.getElementById('name'+i).value.trim() || ('Player '+(i+1)));
+  const newId = Date.now().toString();
+  
+  appState = {
+    initialNames: names,
+    records: [],
+    editingIndex: null, 
+    forceScoreValues: null,
+    pendingDeleteIdx: null,
+    selectedOutcome: 'win', 
+    selectedWinner: null,
+    selectedDiscarder: undefined, 
+    calc: defaultCalcState(),
+    limitFullValue: 1000,
+    lastPlayed: Date.now()
+  };
+  
+  appData.activeGameId = newId;
+  appData.games[newId] = appState;
+  
+  saveState();
+  replay();
+  
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  [0,1,2,3].forEach(i => document.getElementById('name'+i).value = ''); 
+  render();
+}
+
+function resumeGame(id) {
+  appData.activeGameId = id;
+  appState = appData.games[id];
+  saveState();
+  replay();
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  render();
+}
+
+function deleteGame(id) {
+  if(confirm('Are you sure you want to delete this saved game? This action cannot be undone.')) {
+    delete appData.games[id];
+    saveState();
+    showMenu();
+  }
+}
+
+function exitToMenu() {
+  showMenu();
+}
+
+function shareScores() {
+  if (!appState) return;
+  const prevailing = currentPrevailing();
+  let text = `🀄 Mahjong Scores\nHand ${appState.handNumber} (${prevailing} Round)\n\n`;
+  
+  const sortedPlayers = [...appState.players].sort((a, b) => b.total - a.total);
+  sortedPlayers.forEach((p, index) => {
+    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '   ';
+    text += `${medal} ${p.name}: ${p.total}\n`;
+  });
+  
+  if (navigator.share) {
+    navigator.share({
+      title: 'Mahjong Scores',
+      text: text
+    }).catch(err => console.log('Error sharing', err));
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Scores copied to clipboard!');
+    }).catch(err => {
+      alert('Could not copy scores.');
+    });
+  }
+}
+
+function currentPrevailing(){
+  return PREVAILING_SEQUENCE[appState.prevailingIndex];
+}
+
+function replay(){
+  const players = appState.initialNames.map((n,i) => ({
+    name: n,
+    seat: INITIAL_SEATS[i],
+    total: STARTING_SCORE
+  }));
+  
+  let dealershipPasses = 0;
+  let handNumber = 1;
+  let drawCount = 0;
+  const displayHistory = [];
+
+  appState.records.forEach((rec, recIdx) => {
+    const prevailingIndex = Math.floor(dealershipPasses / 4) % PREVAILING_SEQUENCE.length;
+    const prevailing = PREVAILING_SEQUENCE[prevailingIndex];
+    const currentDealerIdx = players.findIndex(p => p.seat === 'East');
+    const dealerName = players[currentDealerIdx].name;
+
+    if(rec.type === 'draw'){
+      displayHistory.push({
+        recIdx: recIdx, 
+        isDraw: true, 
+        number: handNumber,
+        prevailing: prevailing, 
+        dealerName: dealerName, 
+        deltas: [0,0,0,0]
+      });
+      drawCount += 1;
+    } else {
+      const winnerIdx = rec.winnerIdx;
+      const discarderIdx = rec.discarderIdx;
+      const scores = rec.scores;
+      const winnerScore = scores[winnerIdx];
+      const deltas = [0,0,0,0];
+
+      for(let i=0;i<4;i++){
+        if(i === winnerIdx) continue;
+        let mult = 1;
+        if(i === discarderIdx) mult *= 2;
+        if(players[i].seat === prevailing) mult *= 2;
+        if(players[winnerIdx].seat === prevailing) mult *= 2;
+        const payment = winnerScore * mult;
+        deltas[winnerIdx] += payment;
+        deltas[i] -= payment;
+      }
+
+      const loserIdxs = [0,1,2,3].filter(i => i !== winnerIdx);
+      for(let a=0;a<loserIdxs.length;a++){
+        for(let b=a+1;b<loserIdxs.length;b++){
+          const i = loserIdxs[a];
+          const j = loserIdxs[b];
+          const diff = scores[i] - scores[j];
+          if(diff === 0) continue;
+          let mult = 1;
+          if(players[i].seat === prevailing || players[j].seat === prevailing) mult *= 2;
+          const amt = Math.abs(diff) * mult;
+          if(diff > 0){ deltas[i] += amt; deltas[j] -= amt; }
+          else { deltas[j] += amt; deltas[i] -= amt; }
+        }
+      }
+
+      players.forEach((p,i) => p.total += deltas[i]);
+
+      displayHistory.push({
+        recIdx: recIdx, 
+        isDraw: false, 
+        number: handNumber,
+        winnerName: players[winnerIdx].name,
+        discarderName: discarderIdx === null ? null : players[discarderIdx].name,
+        prevailing: prevailing, 
+        dealerName: dealerName, 
+        deltas: deltas.slice()
+      });
+      
+      // ROTATION LOGIC: seats only advance if the winner is NOT the current dealer (East).
+      // If East wins (or it's a draw, handled above), the dealer stays and nothing rotates.
+      if(winnerIdx !== currentDealerIdx){
+        dealershipPasses++;
+        
+        // Exact mapping for counter-clockwise rotation around the table.
+        // The player currently in South becomes the new East (dealer);
+        // everyone else shifts back one seat.
+        const nextSeat = {
+          'East': 'North',
+          'South': 'East',
+          'West': 'South',
+          'North': 'West'
+        };
+        players.forEach(p => {
+          p.seat = nextSeat[p.seat];
+        });
+      }
+    }
+
+    handNumber += 1;
+  });
+
+  appState.players = players;
+  appState.prevailingIndex = Math.floor(dealershipPasses / 4) % PREVAILING_SEQUENCE.length;
+  appState.handNumber = handNumber;
+  appState.drawCount = drawCount;
+  appState.displayHistory = displayHistory;
+}
+
+function render(){
+  saveState(); 
+
+  const prevailing = currentPrevailing();
+  const bySeat = {};
+  appState.players.forEach((p,i) => bySeat[p.seat] = i);
+  const compass = document.getElementById('compass');
+  compass.innerHTML = '';
+
+  const slots = [
+    {seat:'South', cls:'north'},
+    {seat:'West', cls:'west'},
+    {seat:'East', cls:'east'},
+    {seat:'North', cls:'south'}
+  ];
+  
+  slots.forEach(s => {
+    const idx = bySeat[s.seat];
+    const p = appState.players[idx];
+    const isPrevailing = (s.seat === prevailing);
+    const totalClass = p.total > 0 ? 'pos' : (p.total < 0 ? 'neg' : 'zero');
+    const div = document.createElement('div');
+    div.className = 'seat-slot ' + s.cls;
+    div.innerHTML = `
+      <div class="seat-card ${isPrevailing ? 'prevailing' : ''}">
+        ${s.seat === 'East' ? '<div class="seat-east-badge">Dealer</div>' : ''}
+        ${isPrevailing ? '<div class="prevailing-badge">Prevailing</div>' : ''}
+        <span class="seat-wind-word">${s.seat}</span>
+        <div class="seat-wind-tag">${WIND_GLYPH[s.seat]}</div>
+        <div class="seat-name">${escapeHtml(p.name)}</div>
+        <div class="seat-total ${totalClass}">${p.total}</div>
+      </div>`;
+    compass.appendChild(div);
+  });
+
+  const centerDiv = document.createElement('div');
+  centerDiv.className = 'seat-slot center';
+  compass.appendChild(centerDiv);
+
+  document.getElementById('handCounter').textContent =
+    `Hand ${appState.handNumber} — ${prevailing} round` + (appState.drawCount > 0 ? ` · ${appState.drawCount} draw${appState.drawCount === 1 ? '' : 's'} so far` : '');
+
+  const isEditing = appState.editingIndex !== null;
+  const outcomeBox = document.getElementById('outcomeChoices');
+  outcomeBox.innerHTML = '';
+  
+  [['win','Someone won'], ['draw','Draw']].forEach(item => {
+    const val = item[0];
+    const label = item[1];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'choice-btn' + (appState.selectedOutcome === val ? ' selected' : '');
+    btn.textContent = label;
+    btn.disabled = isEditing;
+    btn.onclick = () => { appState.selectedOutcome = val; render(); };
+    outcomeBox.appendChild(btn);
+  });
+  
+  const isWin = (appState.selectedOutcome === 'win');
+  document.getElementById('winDetails').style.display = isWin ? 'block' : 'none';
+  document.getElementById('drawHint').style.display = isWin ? 'none' : 'block';
+  document.getElementById('recordBtn').textContent = isEditing ? 'Save changes' : (isWin ? 'Record hand' : 'Record draw');
+
+  const editBanner = document.getElementById('editBanner');
+  const cancelBtn = document.getElementById('cancelEditBtn');
+  
+  if(isEditing){
+    editBanner.style.display = 'block';
+    editBanner.textContent = `Editing hand ${appState.editingIndex + 1} — saving will recalculate every hand after it.`;
+    cancelBtn.style.display = 'inline-block';
+  } else {
+    editBanner.style.display = 'none';
+    cancelBtn.style.display = 'none';
+  }
+
+  const winnerBox = document.getElementById('winnerChoices');
+  winnerBox.innerHTML = '';
+  appState.players.forEach((p,i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'choice-btn' + (appState.selectedWinner === i ? ' selected' : '');
+    btn.textContent = `${p.name} (${p.seat})`;
+    btn.onclick = () => { 
+      appState.selectedWinner = i; 
+      if(appState.selectedDiscarder === i) {
+        appState.selectedDiscarder = undefined; 
+      }
+      render(); 
+    };
+    winnerBox.appendChild(btn);
+  });
+
+  const discBox = document.getElementById('discarderChoices');
+  discBox.innerHTML = '';
+  const selfBtn = document.createElement('button');
+  selfBtn.type = 'button';
+  selfBtn.className = 'choice-btn' + (appState.selectedDiscarder === null ? ' selected' : '');
+  selfBtn.textContent = 'Self-draw';
+  selfBtn.disabled = appState.selectedWinner === null;
+  selfBtn.onclick = () => { appState.selectedDiscarder = null; render(); };
+  discBox.appendChild(selfBtn);
+
+  appState.players.forEach((p,i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'choice-btn' + (appState.selectedDiscarder === i ? ' selected' : '');
+    btn.textContent = `${p.name} (${p.seat})`;
+    btn.disabled = (appState.selectedWinner === null) || (i === appState.selectedWinner);
+    btn.onclick = () => { appState.selectedDiscarder = i; render(); };
+    discBox.appendChild(btn);
+  });
+
+  const scoreBox = document.getElementById('scoreInputs');
+  const existing = {};
+  
+  const oldInputs = scoreBox.querySelectorAll('input');
+  for(let x=0; x<oldInputs.length; x++) {
+    existing[oldInputs[x].dataset.idx] = oldInputs[x].value;
+  }
+  scoreBox.innerHTML = '';
+  
+  appState.players.forEach((p,i) => {
+    const field = document.createElement('div');
+    field.className = 'score-field';
+    field.innerHTML = `<label>${escapeHtml(p.name)}</label>`;
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.min = '0';
+    inp.placeholder = '0';
+    inp.dataset.idx = i;
+    inp.id = 'score'+i;
+    
+    if(appState.forceScoreValues){
+      inp.value = appState.forceScoreValues[i];
+    } else if(appState.calcApplyTarget === i && appState.calcApplyValue !== undefined){
+      inp.value = appState.calcApplyValue;
+    } else if(existing[i] !== undefined){
+      inp.value = existing[i];
+    }
+    field.appendChild(inp);
+    scoreBox.appendChild(field);
+  });
+  
+  appState.forceScoreValues = null;
+  appState.calcApplyTarget = null;
+  appState.calcApplyValue = undefined;
+
+  renderCalc();
+
+  const log = document.getElementById('handLog');
+  if(appState.displayHistory.length === 0){
+    log.innerHTML = '<div class="empty-log">No hands recorded yet.</div>';
+  } else {
+    log.innerHTML = '';
+    const reversedHistory = appState.displayHistory.slice().reverse();
+    reversedHistory.forEach(h => {
+      const entry = document.createElement('div');
+      entry.className = 'hand-entry';
+      const confirming = (appState.pendingDeleteIdx === h.recIdx);
+      
+      let actionsHtml = '';
+      if (confirming) {
+        actionsHtml = `<div class="entry-actions">
+             <span style="font-size:12px;color:var(--ivory-dim);align-self:center;">Delete this hand?</span>
+             <button class="btn danger small" onclick="deleteHand(${h.recIdx})">Yes, delete</button>
+             <button class="btn secondary small" onclick="cancelDeleteRequest()">Cancel</button>
+           </div>`;
+      } else {
+        actionsHtml = `<div class="entry-actions">
+             ${h.isDraw ? '' : `<button class="btn secondary small" onclick="editHand(${h.recIdx})">Edit</button>`}
+             <button class="btn secondary small" onclick="requestDelete(${h.recIdx})">Delete</button>
+           </div>`;
+      }
+           
+      if(h.isDraw){
+        entry.innerHTML = `
+          <div class="head"><span class="num">Hand ${h.number}</span><span>Draw — no scores exchanged</span></div>
+          <div class="meta">${h.prevailing} round · dealer: ${escapeHtml(h.dealerName)}</div>
+          ${actionsHtml}
+        `;
+        log.appendChild(entry);
+        return;
+      }
+      
+      const deltaSpans = h.deltas.map((d,i) => {
+        const cls = d > 0 ? 'pos' : (d < 0 ? 'neg' : '');
+        return `<span class="${cls}">${escapeHtml(appState.players[i].name)}: ${formatScore(d)}</span>`;
+      }).join('');
+      
+      entry.innerHTML = `
+        <div class="head"><span class="num">Hand ${h.number}</span><span>${escapeHtml(h.winnerName)} won${h.discarderName ? ' off ' + escapeHtml(h.discarderName) : ' (self-draw)'}</span></div>
+        <div class="deltas">${deltaSpans}</div>
+        <div class="meta">${h.prevailing} round · dealer: ${escapeHtml(h.dealerName)}</div>
+        ${actionsHtml}
+      `;
+      log.appendChild(entry);
+    });
+  }
+
+  document.getElementById('undoBtn').disabled = (appState.records.length === 0);
+}
+
+function formatScore(n){
+  const sign = n > 0 ? '+' : '';
+  return sign + n;
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function showFormError(msg){
+  const el = document.getElementById('formError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function clearFormError(){
+  const el = document.getElementById('formError');
+  el.style.display = 'none';
+  el.textContent = '';
+}
+
+function recordHand(){
+  clearFormError();
+  if(appState.selectedOutcome === 'draw'){
+    const record = { type: 'draw' };
+    appState.records.push(record);
+    replay();
+    render();
+    return;
+  }
+
+  if(appState.selectedWinner === null || appState.selectedWinner === undefined){
+    showFormError('Select who won the hand.');
+    return;
+  }
+  if(appState.selectedDiscarder === undefined){
+    showFormError('Select who discarded the winning tile, or Self-draw.');
+    return;
+  }
+  const scores = appState.players.map((p,i) => {
+    const v = parseFloat(document.getElementById('score'+i).value);
+    return isNaN(v) ? 0 : v;
+  });
+
+  const record = {
+    type: 'win',
+    winnerIdx: appState.selectedWinner,
+    discarderIdx: appState.selectedDiscarder,
+    scores: scores
+  };
+
+  if(appState.editingIndex !== null){
+    appState.records[appState.editingIndex] = record;
+  } else {
+    appState.records.push(record);
+  }
+
+  replay();
+  appState.editingIndex = null;
+  appState.selectedOutcome = 'win';
+  appState.selectedWinner = null;
+  appState.selectedDiscarder = undefined;
+  appState.forceScoreValues = null;
+  render();
+}
+
+function editHand(recIdx){
+  const rec = appState.records[recIdx];
+  if(!rec || rec.type !== 'win') return;
+  appState.editingIndex = recIdx;
+  appState.selectedOutcome = 'win';
+  appState.selectedWinner = rec.winnerIdx;
+  appState.selectedDiscarder = rec.discarderIdx;
+  appState.forceScoreValues = rec.scores.slice();
+  render();
+  const btn = document.getElementById('recordBtn');
+  if(btn) btn.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function cancelEdit(){
+  appState.editingIndex = null;
+  appState.selectedOutcome = 'win';
+  appState.selectedWinner = null;
+  appState.selectedDiscarder = undefined;
+  appState.forceScoreValues = null;
+  render();
+}
+
+function requestDelete(recIdx){
+  appState.pendingDeleteIdx = recIdx;
+  render();
+}
+
+function cancelDeleteRequest(){
+  appState.pendingDeleteIdx = null;
+  render();
+}
+
+function deleteHand(recIdx){
+  appState.records.splice(recIdx, 1);
+  appState.pendingDeleteIdx = null;
+
+  if(appState.editingIndex !== null){
+    if(appState.editingIndex === recIdx){
+      appState.editingIndex = null;
+      appState.selectedOutcome = 'win';
+      appState.selectedWinner = null;
+      appState.selectedDiscarder = undefined;
+      appState.forceScoreValues = null;
+    } else if(appState.editingIndex > recIdx){
+      appState.editingIndex -= 1;
+    }
+  }
+
+  replay();
+  render();
+}
+
+function undoLast(){
+  if(appState.records.length === 0) return;
+  deleteHandSilently(appState.records.length - 1);
+}
+
+function deleteHandSilently(recIdx){
+  appState.records.splice(recIdx, 1);
+  appState.pendingDeleteIdx = null;
+  if(appState.editingIndex !== null){
+    if(appState.editingIndex === recIdx){
+      appState.editingIndex = null;
+      appState.selectedOutcome = 'win';
+      appState.selectedWinner = null;
+      appState.selectedDiscarder = undefined;
+      appState.forceScoreValues = null;
+    } else if(appState.editingIndex > recIdx){
+      appState.editingIndex -= 1;
+    }
+  }
+  replay();
+  render();
+}
+
+/* ============================================================
+   SCORE CALCULATOR
+   ============================================================ */
+
+function toggleCalc(){
+  appState.calc.open = !appState.calc.open;
+  if(appState.calc.open) appState.calc.result = null;
+  render();
+}
+
+function calcCompField(idx, field, value){
+  appState.calc.comps[idx][field] = value;
+  appState.calc.result = null;
+  render();
+}
+
+function calcAddComp(type){
+  appState.calc.comps.push({
+    type: type,
+    kind: 'Dots',
+    rank: 1,
+    wind: 'East',
+    dragon: 'Red',
+    open: true
+  });
+  appState.calc.result = null;
+  render();
+}
+
+function calcRemoveComp(idx){
+  appState.calc.comps.splice(idx, 1);
+  appState.calc.result = null;
+  render();
+}
+
+function calcToggleField(field){
+  appState.calc[field] = !appState.calc[field];
+  appState.calc.result = null;
+  render();
+}
+
+function runCalculation(){
+  const calc = appState.calc;
+  const ownWind = appState.players[calc.forPlayer].seat;
+  const prevailing = currentPrevailing();
+
+  if(calc.mode === 'limit'){
+    let divisor = 1;
+    if(calc.limitTier === 'half') divisor = 2;
+    if(calc.limitTier === 'quarter') divisor = 4;
+    if(calc.limitTier === 'eighth') divisor = 8;
+    
+    const value = Math.round(appState.limitFullValue / divisor);
+    calc.result = {
+      limit: true,
+      lines: [{label: `${calc.limitTier[0].toUpperCase()}${calc.limitTier.slice(1)} limit`, detail: `${appState.limitFullValue} ÷ ${divisor}`}],
+      final: value
+    };
+    render();
+    return;
+  }
+
+  const doubleLines = [];
+  const pointLines = [];
+
+  calc.comps.forEach(c => {
+    if(c.type === 'pung' || c.type === 'kong'){
+      let isNoble = false;
+      if(c.kind === 'Wind' || c.kind === 'Dragon') {
+        isNoble = true;
+      } else if(Number(c.rank) === 1 || Number(c.rank) === 9) {
+        isNoble = true;
+      }
+
+      let pts = 0;
+      let label = '';
+      if(c.type === 'pung'){
+        pts = isNoble ? (c.open ? 4 : 8) : (c.open ? 2 : 4);
+        label = `${c.open ? 'Open' : 'Closed'} Pung of ${isNoble ? 'Nobles' : 'Simples'}`;
+      } else {
+        pts = isNoble ? (c.open ? 16 : 32) : (c.open ? 8 : 16);
+        label = `${c.open ? 'Open' : 'Closed'} Kong of ${isNoble ? 'Nobles' : 'Simples'}`;
+      }
+      pointLines.push([label, pts]);
+
+      if(c.kind === 'Dragon') doubleLines.push(`Pung/Kong of ${c.dragon} Dragon`);
+      if(c.kind === 'Wind'){
+        if(c.wind === ownWind) doubleLines.push(`Pung/Kong of own wind (${c.wind})`);
+        if(c.wind === prevailing) doubleLines.push(`Pung/Kong of prevailing wind (${c.wind})`);
+      }
+    } else if (c.type === 'pair') {
+      if(c.kind === 'Dragon') pointLines.push(['Pair of dragons', 2]);
+      if(c.kind === 'Wind'){
+        if(c.wind === ownWind) pointLines.push(['Pair of own wind', 2]);
+        if(c.wind === prevailing) pointLines.push(['Pair of prevailing wind', 2]);
+      }
+      if((c.kind === 'Dots' || c.kind === 'Bamboo') && Number(c.rank) === 1){
+        pointLines.push([`Special pair of 1 ${c.kind}`, 2]);
+      }
+    }
+  });
+
+  let hasChow = false;
+  let hasPungOrKong = false;
+  let hasSingle = false;
+  
+  calc.comps.forEach(c => {
+    if (c.type === 'chow') hasChow = true;
+    if (c.type === 'pung' || c.type === 'kong') hasPungOrKong = true;
+    if (c.type === 'single') hasSingle = true;
+  });
+
+  if (hasPungOrKong && !hasChow && !hasSingle) doubleLines.push('All pungs');
+  if (hasChow && !hasPungOrKong && !hasSingle) doubleLines.push('All chows');
+
+  const tiles = [];
+  calc.comps.forEach(c => {
+    let honor = (c.kind === 'Wind' || c.kind === 'Dragon');
+    let suit = honor ? null : c.kind;
+    let rank = honor ? null : Number(c.rank);
+
+    if (c.type === 'chow') {
+      tiles.push({honor: false, suit: suit, rank: rank});
+      tiles.push({honor: false, suit: suit, rank: rank+1});
+      tiles.push({honor: false, suit: suit, rank: rank+2});
+    } else if (c.type === 'pung') {
+      tiles.push({honor: honor, suit: suit, rank: rank});
+      tiles.push({honor: honor, suit: suit, rank: rank});
+      tiles.push({honor: honor, suit: suit, rank: rank});
+    } else if (c.type === 'kong') {
+      tiles.push({honor: honor, suit: suit, rank: rank});
+      tiles.push({honor: honor, suit: suit, rank: rank});
+      tiles.push({honor: honor, suit: suit, rank: rank});
+      tiles.push({honor: honor, suit: suit, rank: rank});
+    } else if (c.type === 'pair') {
+      tiles.push({honor: honor, suit: suit, rank: rank});
+      tiles.push({honor: honor, suit: suit, rank: rank});
+    } else if (c.type === 'single') {
+      tiles.push({honor: honor, suit: suit, rank: rank});
+    }
+  });
+
+  if (tiles.length > 0) {
+    const allTerminalOrHonor = tiles.every(t => t.honor || t.rank === 1 || t.rank === 9);
+    const allSimples = tiles.every(t => !t.honor && t.rank >= 2 && t.rank <= 8);
+    if(!hasChow && allTerminalOrHonor) doubleLines.push('All terminals & honors (only precious tiles)');
+    if(allSimples) doubleLines.push('All simples');
+
+    const suitedTiles = tiles.filter(t => !t.honor);
+    const suitsUsed = new Set();
+    suitedTiles.forEach(t => suitsUsed.add(t.suit));
+    
+    let hasHonorTile = false;
+    tiles.forEach(t => { if(t.honor) hasHonorTile = true; });
+    
+    if(suitsUsed.size === 1 && hasHonorTile) doubleLines.push('Clean hand (one suit + honors)');
+    if(suitsUsed.size === 1 && !hasHonorTile) doubleLines.push('Pure hand (one suit only) — counts as 3 doublers');
+  }
+
+  if(calc.closed) doubleLines.push('Closed hand (fully concealed)');
+  if(calc.lastTile) doubleLines.push('Won on the last tile from the wall');
+  if(calc.singleWait) pointLines.push(['Only possible winning tile', 2]);
+
+  let totalDoubles = 0;
+  doubleLines.forEach(label => {
+    totalDoubles += label.startsWith('Pure hand') ? 3 : 1;
+  });
+  
+  let totalPoints = 0;
+  pointLines.forEach(item => {
+    totalPoints += item[1];
+  });
+  
+  const winBonus = calc.isWinner ? 20 : 0;
+  const finalScore = (winBonus + totalPoints) * Math.pow(2, totalDoubles);
+  const meetsMinimum = !calc.isWinner || totalDoubles >= 2;
+
+  calc.result = {
+    limit: false,
+    doubleLines: doubleLines, 
+    pointLines: pointLines, 
+    totalDoubles: totalDoubles, 
+    totalPoints: totalPoints, 
+    winBonus: winBonus, 
+    finalScore: finalScore, 
+    meetsMinimum: meetsMinimum
+  };
+  render();
+}
+
+function applyCalcResult(){
+  const calc = appState.calc;
+  if(!calc.result) return;
+  const value = calc.result.limit ? calc.result.final : calc.result.finalScore;
+  appState.calcApplyTarget = calc.forPlayer;
+  appState.calcApplyValue = value;
+  calc.open = false;
+  calc.result = null;
+  render();
+}
+
+function renderCalc(){
+  const panel = document.getElementById('calcPanel');
+  const toggleBtn = document.getElementById('calcToggleBtn');
+  
+  if(!appState.calc.open){
+    panel.style.display = 'none';
+    toggleBtn.textContent = '🧮 Score calculator (optional)';
+    return;
+  }
+  
+  panel.style.display = 'block';
+  toggleBtn.textContent = '🧮 Hide score calculator';
+  
+  const calc = appState.calc;
+  const ownWind = appState.players[calc.forPlayer].seat;
+  const prevailing = currentPrevailing();
+
+  let html = '<h4>Score calculator</h4>';
+
+  html += '<div class="calc-row"><span class="calc-label">For</span><select onchange="calcSetForPlayer(this.value)">';
+  appState.players.forEach((p,i) => {
+    html += `<option value="${i}" ${calc.forPlayer === i ? 'selected' : ''}>${escapeHtml(p.name)} (${p.seat})</option>`;
+  });
+  html += '</select></div>';
+
+  html += `<div class="calc-row">
+    <button type="button" class="choice-btn ${calc.mode === 'regular' ? 'selected' : ''}" onclick="calcSetMode('regular')">Regular hand</button>
+    <button type="button" class="choice-btn ${calc.mode === 'limit' ? 'selected' : ''}" onclick="calcSetMode('limit')">Limit hand</button>
+  </div>`;
+
+  if(calc.mode === 'limit'){
+    html += `<div class="calc-row"><span class="calc-label">Full limit =</span>
+      <input type="number" min="0" style="width:100px;" value="${appState.limitFullValue}" onchange="calcSetFullValue(this.value)">
+      <span style="font-size:12px;color:var(--ivory-dim);">points (set this to whatever your table agrees a full limit hand is worth)</span>
+    </div>`;
+    
+    html += `<div class="calc-row">`;
+    ['full','half','quarter','eighth'].forEach(tier => {
+      const displayTier = tier.charAt(0).toUpperCase() + tier.slice(1);
+      html += `<button type="button" class="choice-btn ${calc.limitTier === tier ? 'selected' : ''}" onclick="calcSetLimitTier('${tier}')">${displayTier}</button>`;
+    });
+    html += `</div>`;
+    
+    html += `<div class="hint" style="margin:0 0 10px;">Special games (Thirteen Orphans, Nine Gates, all-honors hands, and similar) don't use fan doubling — they're worth a straight fraction of the agreed limit value. Look up which tier your hand qualifies for and pick it above.</div>`;
+  } else {
+    let numCombos = 0;
+    let numPairs = 0;
+    let numTiles = 0;
+    calc.comps.forEach(c => {
+      if (c.type === 'chow' || c.type === 'pung' || c.type === 'kong') { 
+        numCombos++; numTiles += 3; 
+      }
+      else if (c.type === 'pair') { 
+        numPairs++; numTiles += 2; 
+      }
+      else if (c.type === 'single') { 
+        numTiles += 1; 
+      }
+    });
+    const maxTiles = calc.isWinner ? 14 : 13;
+
+    html += `<div class="calc-row" style="font-size:12px;color:var(--ivory-dim);">Own wind: <strong style="color:var(--ivory);margin:0 4px;">${ownWind}</strong> · Prevailing wind: <strong style="color:var(--ivory);margin-left:4px;">${prevailing}</strong></div>`;
+
+    html += `<div class="calc-row"><span class="calc-label">Did this hand win?</span>
+      <button type="button" class="choice-btn ${calc.isWinner ? 'selected' : ''}" onclick="calcSetWinner(true)">Yes, this player won</button>
+      <button type="button" class="choice-btn ${!calc.isWinner ? 'selected' : ''}" onclick="calcSetWinner(false)">No, just their hand value</button>
+    </div>`;
+    
+    html += `<div class="hint" style="margin:0 0 10px;">${calc.isWinner ? 'Winning hands get the +20 point bonus before doubling, and normally need at least 2 doublers.' : 'Without a win, no +20 bonus is added — this is just the raw value of a losing hand for settling between losers.'}</div>`;
+
+    if (numTiles > maxTiles) {
+      html += `<div class="calc-warning" style="margin-bottom:14px; padding:10px; background:rgba(224,138,128,0.15); border:1px solid rgba(224,138,128,0.5); border-radius:8px;">
+        Warning: You have ${numTiles} tiles, but a ${calc.isWinner ? 'winning' : 'losing'} hand allows a maximum of ${maxTiles}. Please remove some tiles before adding new ones.
+      </div>`;
+    }
+
+    html += `<div id="calcCompsList">`;
+    calc.comps.forEach((c, i) => {
+      html += `<div class="calc-set-block">
+        <div class="calc-row" style="margin-bottom:6px; justify-content:space-between;">
+          <span class="calc-label" style="font-weight:bold; color:var(--gold-bright); text-transform:uppercase;">${c.type}</span>
+          <button type="button" class="btn secondary small" style="padding:2px 8px; font-size:11px;" onclick="calcRemoveComp(${i})">Remove</button>
+        </div>`;
+
+      if (c.type === 'chow') {
+        html += `<div class="calc-row"><select onchange="calcCompField(${i},'kind',this.value)">`;
+        SUITS.forEach(su => {
+          html += `<option value="${su}" ${c.kind === su ? 'selected' : ''}>${su}</option>`;
+        });
+        html += `</select><select onchange="calcCompField(${i},'rank',this.value)">`;
+        [1,2,3,4,5,6,7].forEach(r => {
+          html += `<option value="${r}" ${Number(c.rank) === r ? 'selected' : ''}>${r}-${r+1}-${r+2}</option>`;
+        });
+        html += `</select></div>`;
+      } else {
+        html += `<div class="calc-row"><select onchange="calcCompField(${i},'kind',this.value)">`;
+        SUITS.forEach(su => {
+          html += `<option value="${su}" ${c.kind === su ? 'selected' : ''}>${su}</option>`;
+        });
+        html += `<option value="Wind" ${c.kind === 'Wind' ? 'selected' : ''}>Wind</option>`;
+        html += `<option value="Dragon" ${c.kind === 'Dragon' ? 'selected' : ''}>Dragon</option>`;
+        html += `</select>`;
+          
+        if (c.kind === 'Wind') {
+          html += `<select onchange="calcCompField(${i},'wind',this.value)">`;
+          WINDS.forEach(w => {
+            html += `<option value="${w}" ${c.wind === w ? 'selected' : ''}>${w}</option>`;
+          });
+          html += `</select>`;
+        } else if (c.kind === 'Dragon') {
+          html += `<select onchange="calcCompField(${i},'dragon',this.value)">`;
+          DRAGONS.forEach(d => {
+            html += `<option value="${d}" ${c.dragon === d ? 'selected' : ''}>${d}</option>`;
+          });
+          html += `</select>`;
+        } else {
+          html += `<select onchange="calcCompField(${i},'rank',this.value)">`;
+          [1,2,3,4,5,6,7,8,9].forEach(r => {
+            html += `<option value="${r}" ${Number(c.rank) === r ? 'selected' : ''}>${r}</option>`;
+          });
+          html += `</select>`;
+        }
+        
+        if (c.type === 'pung' || c.type === 'kong') {
+          html += `<span class="calc-label" style="margin-left:8px; min-width:auto;">State:</span>
+            <button type="button" class="choice-btn ${c.open ? 'selected' : ''}" style="padding:4px 10px; font-size:12px;" onclick="calcCompField(${i},'open',true)">Open</button>
+            <button type="button" class="choice-btn ${!c.open ? 'selected' : ''}" style="padding:4px 10px; font-size:12px;" onclick="calcCompField(${i},'open',false)">Closed</button>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+    });
+    html += `</div>`;
+
+    html += `<div class="calc-row" style="margin-top:10px; margin-bottom:6px;">
+      <span class="calc-label" style="min-width:auto;">Add:</span>`;
+      
+    if (numCombos < 4 && numTiles + 3 <= maxTiles) {
+      html += `<button type="button" class="choice-btn" style="padding:4px 10px; font-size:12px;" onclick="calcAddComp('chow')">+ Chow</button>
+               <button type="button" class="choice-btn" style="padding:4px 10px; font-size:12px;" onclick="calcAddComp('pung')">+ Pung</button>
+               <button type="button" class="choice-btn" style="padding:4px 10px; font-size:12px;" onclick="calcAddComp('kong')">+ Kong</button>`;
+    }
+    if (numPairs < 1 && numTiles + 2 <= maxTiles) {
+      html += `<button type="button" class="choice-btn" style="padding:4px 10px; font-size:12px;" onclick="calcAddComp('pair')">+ Pair</button>`;
+    }
+    if (numTiles + 1 <= maxTiles) {
+      html += `<button type="button" class="choice-btn" style="padding:4px 10px; font-size:12px;" onclick="calcAddComp('single')">+ Single Tile</button>`;
+    }
+    
+    html += `</div>`;
+
+    html += `<div style="font-size:12px; color:var(--ivory-dim); margin-bottom:18px;">
+      Tiles used: ${numTiles} / ${maxTiles} &nbsp;·&nbsp; Sets: ${numCombos}/4 &nbsp;·&nbsp; Pairs: ${numPairs}/1
+    </div>`;
+
+    html += `<div class="calc-check-row">
+      <label><input type="checkbox" ${calc.closed ? 'checked' : ''} onchange="calcToggleField('closed')"> Closed hand (fully concealed)</label>
+      <label><input type="checkbox" ${calc.lastTile ? 'checked' : ''} onchange="calcToggleField('lastTile')"> Won on the last tile from the wall</label>
+      <label><input type="checkbox" ${calc.singleWait ? 'checked' : ''} onchange="calcToggleField('singleWait')"> Only possible winning tile</label>
+    </div>`;
+
+    html += `<button type="button" class="btn" onclick="runCalculation()">Calculate</button>`;
+  }
+
+  if(calc.mode === 'limit'){
+    html += `<button type="button" class="btn" onclick="runCalculation()" style="margin-top:6px;">Calculate</button>`;
+  }
+
+  if(calc.result){
+    if(calc.result.limit){
+      html += `<div class="calc-breakdown">
+        <div>${calc.result.lines[0].label} = ${calc.result.lines[0].detail}</div>
+        <div class="final">${calc.result.final} points</div>
+        <button type="button" class="btn secondary small" style="margin-top:8px;" onclick="applyCalcResult()">Use this score for ${escapeHtml(appState.players[calc.forPlayer].name)}</button>
+      </div>`;
+    } else {
+      const r = calc.result;
+      
+      let breakdownHtml = `<div class="calc-breakdown">`;
+      if(r.doubleLines.length > 0){
+        breakdownHtml += `<div><strong>Doublers (×2 each):</strong></div><ul>`;
+        r.doubleLines.forEach(l => {
+          breakdownHtml += `<li>${escapeHtml(l)}</li>`;
+        });
+        breakdownHtml += `</ul>`;
+      } else {
+        breakdownHtml += `<div>No doublers.</div>`;
+      }
+      
+      if(r.pointLines.length > 0){
+        breakdownHtml += `<div><strong>Base Points Details:</strong></div><ul>`;
+        r.pointLines.forEach(item => {
+          breakdownHtml += `<li>${escapeHtml(item[0])}: +${item[1]}</li>`;
+        });
+        breakdownHtml += `</ul>`;
+      }
+      
+      if(r.winBonus){
+        breakdownHtml += `<div>(${r.winBonus} win bonus + ${r.totalPoints} points) × 2^${r.totalDoubles} doublers</div>`;
+      } else {
+        breakdownHtml += `<div>(${r.totalPoints} points, no win bonus) × 2^${r.totalDoubles} doublers</div>`;
+      }
+      
+      breakdownHtml += `<div class="final">${r.finalScore} points</div>`;
+      
+      if(calc.isWinner && !r.meetsMinimum){
+        breakdownHtml += `<div class="calc-warning">This hand only has ${r.totalDoubles} doubler(s) — below the minimum of 2 usually required to win. Check your combination, or use it anyway if your table plays it differently.</div>`;
+      }
+      
+      breakdownHtml += `<button type="button" class="btn secondary small" style="margin-top:8px;" onclick="applyCalcResult()">Use this score for ${escapeHtml(appState.players[calc.forPlayer].name)}</button>`;
+      breakdownHtml += `</div>`;
+      html += breakdownHtml;
+    }
+  }
+
+  panel.innerHTML = html;
+}
+
+function calcSetWinner(v){ appState.calc.isWinner = v; appState.calc.result = null; render(); }
+function calcSetForPlayer(v){ appState.calc.forPlayer = Number(v); appState.calc.result = null; render(); }
+function calcSetMode(m){ appState.calc.mode = m; appState.calc.result = null; render(); }
+function calcSetFullValue(v){ appState.limitFullValue = Number(v) || 0; appState.calc.result = null; render(); }
+function calcSetLimitTier(t){ appState.calc.limitTier = t; appState.calc.result = null; render(); }
+
+// Initialize the app
+initApp();
+</script>
+</body>
+</html>
